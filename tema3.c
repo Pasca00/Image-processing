@@ -25,16 +25,21 @@ void black_and_white(unsigned char *bmp_pixel_array, int image_nr, bmp_fileheade
 	snprintf(out_filename, 50, out_filename_format, image_nr);
 	FILE *out_file = fopen(out_filename, "wb");
 	unsigned char avg;
-	
-	for(int i = 0; i < img_info.biSizeImage; i += 3){
-		avg = (bmp_pixel_array[i] + bmp_pixel_array[i + 1] + bmp_pixel_array[i + 2]) / 3;
-		bmp_pixel_array[i] = avg;
-		bmp_pixel_array[i + 1] = avg;
-		bmp_pixel_array[i + 2] = avg;
+	unsigned char *pixel_array_copy = malloc(img_info.biSizeImage * sizeof(unsigned char));
+	for(int i = 0; i < img_info.biSizeImage; i++){
+		pixel_array_copy[i] = bmp_pixel_array[i];
 	}
 	
-	write_image(bmp_pixel_array, img_info, img_header, out_file);
-		
+	for(int i = 0; i < img_info.biSizeImage; i += 3){
+		avg = (pixel_array_copy[i] + pixel_array_copy[i + 1] + pixel_array_copy[i + 2]) / 3;
+		pixel_array_copy[i] = avg;
+		pixel_array_copy[i + 1] = avg;
+		pixel_array_copy[i + 2] = avg;
+	}
+	
+	write_image(pixel_array_copy, img_info, img_header, out_file);
+	
+	//free(pixel_array_copy);
 	fclose(out_file);
 	free(out_filename);
 }
@@ -56,17 +61,55 @@ void no_crop(unsigned char *bmp_pixel_array, int image_nr, bmp_infoheader img_in
 	
 }
 
-char *remove_padding(unsigned char *bmp_pixel_array, bmp_infoheader img_info){
-	char *image_no_padding = malloc((img_info.biSizeImage + 1) * sizeof(unsigned char));
-	int padding = 0;
-	for(int j = 0; j < img_info.height; j++){
-		for(int k = 0; k < img_info.width * 3; k++){
-			if((j + 1) * img_info.width + k )
-			image_no_padding[(j + 1) * img_info.width + k] = bmp_pixel_array[(j + 1) * img_info.width + k + padding];
+void convolutional_layers(unsigned char *bmp_pixel_array, bmp_fileheader img_header, bmp_infoheader img_info, int img_nr){
+	char *out_filename_format = "test%d_filter.bmp";
+	char *out_filename = malloc(20 * sizeof(char));
+	snprintf(out_filename, 20, out_filename_format, img_nr);
+	FILE *filter_output = fopen(out_filename, "wb");
+	
+	char *in_filename_format = "input/filters/filter%d.txt";
+	char *in_filename = malloc(50 * sizeof(char));
+	snprintf(in_filename, 50, in_filename_format, img_nr);
+	FILE *filter_input = fopen(in_filename, "rb");
+	
+	unsigned char *pixel_array_copy = malloc(img_info.biSizeImage * sizeof(unsigned char));
+	for(int i = 0; i < img_info.biSizeImage; i++){
+		pixel_array_copy[i] = 0;
+	}
+	
+	int size;
+	fscanf(filter_input, "%d\n", &size);
+	int *filter[size];
+	
+	
+	for(int i = 0; i < size; i++){
+		filter[i] = malloc((size + 5) * sizeof(int));
+	}
+	
+	for(int i = 0; i < size; i++){
+		for(int j = 0; j < size; j++){
+			if(j != size - 1){
+				fscanf(filter_input, "%d ", &filter[i][j]);
+			}
+			else{
+				fscanf(filter_input, "%d\n", &filter[i][j]);
+			}
 		}
 	}
 	
-	return image_no_padding;
+	for(int i = 0; i < img_info.biSizeImage; i++){
+		for(int j = 0; j < size; j++){
+			//pixel_array_copy[i] = 
+		}
+	}
+	
+	
+	write_image(pixel_array_copy, img_info, img_header, filter_output);
+	
+	fclose(filter_input);
+	fclose(filter_output);
+	free(out_filename);
+	free(in_filename);
 	
 }
 
@@ -77,7 +120,6 @@ int main(){
 	for(int img_nr = 0; img_nr < 10; img_nr++){
 		bmp_fileheader img_header;
 		bmp_infoheader img_info;
-		unsigned char RGB_swap;
 		snprintf(filename, 25, filename_format, img_nr);
 		
 		FILE *bmp_image_file = fopen(filename, "rb");
@@ -95,9 +137,12 @@ int main(){
 			fread(pointer_to_row, 1, img_info.width * 3, bmp_image_file);
 			pointer_to_row -= img_info.width * 3;
 		}
-		
+		//printf("%u %u %u\n", bmp_pixel_array[img_info.width * 3 - 3], bmp_pixel_array[img_info.width * 3 - 2], bmp_pixel_array[img_info.width * 3 - 1]);
 		black_and_white(bmp_pixel_array, img_nr, img_header, img_info);
+		printf("%d, %d\n", (int)(4 * ceil((float)img_info.width/4.0f)), (4 - (img_info.width % 4)) + img_info.width);
+		printf("%u %u %u\n\n", bmp_pixel_array[img_info.width * 3 - 3], bmp_pixel_array[img_info.width * 3 - 2], bmp_pixel_array[img_info.width * 3 - 1]);
 		//no_crop(bmp_pixel_array, img_nr, img_header, img_info);
+		convolutional_layers(bmp_pixel_array, img_header, img_info, img_nr);
 		
 		fclose(bmp_image_file);
 
