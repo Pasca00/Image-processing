@@ -44,21 +44,52 @@ void black_and_white(unsigned char *bmp_pixel_array, int image_nr, bmp_fileheade
 	free(out_filename);
 }
 
-void no_crop(unsigned char *bmp_pixel_array, int image_nr, bmp_infoheader img_info){
-	int height_width_diff, max_coord;
+void no_crop(unsigned char *bmp_pixel_array, int image_nr, bmp_fileheader img_header, bmp_infoheader img_info){
+	int diff = 0, max_coord;
+	char *out_filename_format = "test%d_nocrop.bmp", *out_filename = malloc(20 * sizeof(unsigned char));
 	
+	snprintf(out_filename, 20, out_filename_format, image_nr);
+	FILE *out_file = fopen(out_filename, "wb");
 	if(img_info.width > img_info.height){
-		height_width_diff = img_info.width - img_info.height;
+		diff = img_info.width - img_info.height;
 		max_coord = img_info.width;
 	}
-	else if(img_info.width < img_info.height){
-		height_width_diff = img_info.height - img_info.width;
+	else if(img_info.width <= img_info.height){
+		diff = img_info.height - img_info.width;
 		max_coord = img_info.height;
 	}
+	printf("===%u===\n", img_info.biSizeImage);
 	
-	bmp_pixel_array = realloc(bmp_pixel_array, height_width_diff * max_coord * 3 * sizeof(unsigned char));
+	unsigned char *pixel_array_copy = malloc(img_info.width * img_info.height * 3 + diff * max_coord * 3);
+	for(int i = 0; i < max_coord * max_coord * 3; i++){
+		pixel_array_copy[i] = 255;
+	}
+	
+	if(max_coord == img_info.width){
+		for(int i = 0; i < img_info.height; i++){
+			memcpy(pixel_array_copy + i * img_info.width * 3 + diff / 2 * img_info.width * 3, bmp_pixel_array + i * img_info.width * 3, img_info.width * 3);
+		}
+	}
+	printf("img width: %u\n", img_info.width);
+	
+	if(max_coord == img_info.height){
+		for(int i = 0; i < img_info.height; i++){
+			memcpy(pixel_array_copy + i * img_info.width * 3 + diff / 2 * 3, bmp_pixel_array + i * img_info.width * 3, img_info.width * 3);
+		}
+	}
+	
+	if(max_coord == img_info.width){
+		img_info.height = img_info.width;
+	}
+	if(max_coord == img_info.height){
+		img_info.width = img_info.height;
+	}
+	printf("---%u---\n", img_info.biSizeImage);
+	
+	write_image(pixel_array_copy, img_info, img_header, out_file);
 
-	
+	free(out_filename);
+	fclose(out_file);
 }
 
 void convolutional_layers(unsigned char *bmp_pixel_array, bmp_fileheader img_header, bmp_infoheader img_info, int img_nr){
@@ -128,7 +159,7 @@ int main(){
 		if(img_info.width % 4 == 0){
 			img_info.biSizeImage = img_info.height * img_info.width * 3;
 		}
-		
+		printf("///%u///\n", img_header.bfSize);
 		unsigned char *bmp_pixel_array = malloc((img_info.biSizeImage + 1) * sizeof(unsigned char) + 12 * sizeof(unsigned char));
 		unsigned char *pointer_to_row = bmp_pixel_array + ((img_info.height - 1) * img_info.width * 3);
 		int padded_row_size = (int)(4 * ceil((float)img_info.width/4.0f)) * 3;
@@ -141,7 +172,7 @@ int main(){
 		black_and_white(bmp_pixel_array, img_nr, img_header, img_info);
 		printf("%d, %d\n", (int)(4 * ceil((float)img_info.width/4.0f)), (4 - (img_info.width % 4)) + img_info.width);
 		printf("%u %u %u\n\n", bmp_pixel_array[img_info.width * 3 - 3], bmp_pixel_array[img_info.width * 3 - 2], bmp_pixel_array[img_info.width * 3 - 1]);
-		//no_crop(bmp_pixel_array, img_nr, img_header, img_info);
+		no_crop(bmp_pixel_array, img_nr, img_header, img_info);
 		convolutional_layers(bmp_pixel_array, img_header, img_info, img_nr);
 		
 		fclose(bmp_image_file);
