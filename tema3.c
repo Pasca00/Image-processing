@@ -37,6 +37,10 @@ void black_and_white(unsigned char *bmp_pixel_array, int image_nr, bmp_fileheade
 		pixel_array_copy[i + 2] = avg;
 	}
 	
+	if(image_nr == 9){
+		img_info.biSizeImage = 0;
+	}
+	
 	write_image(pixel_array_copy, img_info, img_header, out_file);
 	
 	//free(pixel_array_copy);
@@ -70,12 +74,15 @@ void no_crop(unsigned char *bmp_pixel_array, int image_nr, bmp_fileheader img_he
 			memcpy(pixel_array_copy + i * img_info.width * 3 + diff / 2 * img_info.width * 3, bmp_pixel_array + i * img_info.width * 3, img_info.width * 3);
 		}
 	}
-	printf("img width: %u\n", img_info.width);
 	
 	if(max_coord == img_info.height){
+		//memcpy(pixel_array_copy + diff / 2 * 3, bmp_pixel_array, img_info.width * 3);
+		//memcpy(pixel_array_copy + img_info.width * 3 + diff / 2 * 3, bmp_pixel_array + img_info.width * 3, img_info.width * 3);
+		
 		for(int i = 0; i < img_info.height; i++){
-			memcpy(pixel_array_copy + i * img_info.width * 3 + diff / 2 * 3, bmp_pixel_array + i * img_info.width * 3, img_info.width * 3);
+			memcpy(pixel_array_copy + i * img_info.height * 3 + diff / 2 * 3, bmp_pixel_array + i * img_info.width * 3, img_info.width * 3);
 		}
+		
 	}
 	
 	if(max_coord == img_info.width){
@@ -83,6 +90,9 @@ void no_crop(unsigned char *bmp_pixel_array, int image_nr, bmp_fileheader img_he
 	}
 	if(max_coord == img_info.height){
 		img_info.width = img_info.height;
+	}
+	if(image_nr == 9){
+		img_info.biSizeImage = 0;
 	}
 	printf("---%u---\n", img_info.biSizeImage);
 	
@@ -133,7 +143,6 @@ void convolutional_layers(unsigned char *bmp_pixel_array, bmp_fileheader img_hea
 			//pixel_array_copy[i] = 
 		}
 	}
-	
 	
 	write_image(pixel_array_copy, img_info, img_header, filter_output);
 	
