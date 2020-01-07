@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include "bmp_header.h"
 #include <math.h>
-#include<string.h>
+#include <string.h>
 
 void write_image(unsigned char *bmp_pixel_array, bmp_infoheader img_info, bmp_fileheader img_header, FILE *out_file){
 	fwrite(&img_header, sizeof(bmp_fileheader), 1, out_file);
@@ -138,10 +138,29 @@ void convolutional_layers(unsigned char *bmp_pixel_array, bmp_fileheader img_hea
 		}
 	}
 	
-	for(int i = 0; i < img_info.biSizeImage; i++){
-		for(int j = 0; j < size; j++){
-			//pixel_array_copy[i] = 
+	int row_sum = 0, sum = 0;
+	for(int i = 0; i < img_info.width * img_info.height * 3; i++){
+		int n = 0;
+		row_sum = 0;
+		for(int j = -size / 2; j <= size / 2; j++){
+			int m = 0;
+			sum = 0;
+			for(int k = -size / 2; k <= size / 2; k++){
+				if(i + j * img_info.width * 3 >= 0 && i + j * img_info.width * 3 < img_info.biSizeImage){
+					sum = bmp_pixel_array[i + j * img_info.width * 3 + k * 3] * filter[n][m];
+					m++;
+				}
+			}
+			row_sum += sum;
+			n++;
 		}
+		if(row_sum > 255){
+			row_sum = 255;
+		}
+		if(row_sum < 0){
+			row_sum = 0;
+		}
+		pixel_array_copy[i] = row_sum;
 	}
 	
 	write_image(pixel_array_copy, img_info, img_header, filter_output);
