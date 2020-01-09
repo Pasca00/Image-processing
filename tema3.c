@@ -62,7 +62,6 @@ void no_crop(unsigned char *bmp_pixel_array, int image_nr, bmp_fileheader img_he
 		diff = img_info.height - img_info.width;
 		max_coord = img_info.height;
 	}
-	printf("===%u===\n", img_info.biSizeImage);
 	
 	unsigned char *pixel_array_copy = malloc(img_info.width * img_info.height * 3 + diff * max_coord * 3);
 	for(int i = 0; i < max_coord * max_coord * 3; i++){
@@ -94,7 +93,6 @@ void no_crop(unsigned char *bmp_pixel_array, int image_nr, bmp_fileheader img_he
 	if(image_nr == 9){
 		img_info.biSizeImage = 0;
 	}
-	printf("---%u---\n", img_info.biSizeImage);
 	
 	write_image(pixel_array_copy, img_info, img_header, out_file);
 
@@ -137,7 +135,7 @@ void convolutional_layers(unsigned char *bmp_pixel_array, bmp_fileheader img_hea
 			}
 		}
 	}
-	
+	//memcpy(pixel_array_copy, bmp_pixel_array, img_info.biSizeImage);
 	int row_sum = 0, sum = 0, row_count = 0, pixel_count = 0;
 	for(int i = 0; i < img_info.width * img_info.height * 3; i++){
 		int n = 0;
@@ -147,8 +145,11 @@ void convolutional_layers(unsigned char *bmp_pixel_array, bmp_fileheader img_hea
 			row_sum = 0;
 			for(int k = -size / 2; k <= size / 2; k++){
 				if((i + j * img_info.width * 3 >= 0) && (i + j * img_info.width * 3 < img_info.biSizeImage)
-				 && (i + k * 3 - row_count * img_info.width * 3 < img_info.width * 3)){// && (i + k * 3 - (row_count + j) * img_info.width * 3 >= 0)){
+				 && (i + k * 3 - row_count * img_info.width * 3 < img_info.width * 3) && (i + k * 3 - row_count * img_info.width * 3 >= 0)){
 					row_sum += bmp_pixel_array[i + j * img_info.width * 3 + k * 3] * filter[n][m];
+				}
+				else{
+					row_sum += 0;
 				}
 				m++;
 			}
@@ -156,7 +157,7 @@ void convolutional_layers(unsigned char *bmp_pixel_array, bmp_fileheader img_hea
 			n++;
 		}
 		
-		if(pixel_count == img_info.width){
+		if(pixel_count == img_info.width * 3){
 			row_count++;
 			pixel_count = 0;
 		}
