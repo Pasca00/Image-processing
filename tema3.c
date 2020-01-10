@@ -157,7 +157,7 @@ void convolutional_layers(unsigned char *bmp_pixel_array, bmp_fileheader img_hea
 			n++;
 		}
 		
-		if(pixel_count == img_info.width * 3){
+		if(pixel_count == img_info.width * 3 - 1){
 			row_count++;
 			pixel_count = 0;
 		}
