@@ -147,9 +147,6 @@ void convolutional_layers(unsigned char *bmp_pixel_array, bmp_fileheader img_hea
 				if((i + j * img_info.width * 3 >= 0) && (i + j * img_info.width * 3 < img_info.biSizeImage)
 					&& (i + k * 3 - row_count * img_info.width * 3 < img_info.width * 3) 
 					&& (i - row_count * img_info.width * 3 + k * 3 >= 0)){
-						if(img_nr == 6 && i == 1 * img_info.width * 3){
-							printf("j:%d k:%d row_sum:%d\n", j, k, row_count);
-						}
 					row_sum += bmp_pixel_array[i + j * img_info.width * 3 + k * 3] * filter[n][m];
 				}
 				m++;
@@ -157,12 +154,14 @@ void convolutional_layers(unsigned char *bmp_pixel_array, bmp_fileheader img_hea
 			sum += row_sum;
 			n++;
 		}
-		
-		if(pixel_count == img_info.width * 3){
+		if(pixel_count == img_info.width * 3 - 1){
 			row_count++;
 			pixel_count = 0;
 		}
-		pixel_count++;
+		else{
+			pixel_count++;
+		}
+		
 
 		if(sum > 255){
 			sum = 255;
@@ -171,43 +170,6 @@ void convolutional_layers(unsigned char *bmp_pixel_array, bmp_fileheader img_hea
 			sum = 0;
 		}
 		
-		pixel_array_copy[i] = sum;
-	}
-	
-	//pixel_count = 0; row_count = 0;
-	for(int i = 0; i < img_info.biSizeImage; i += img_info.width * 3){
-		int n = 0;
-		sum = 0;
-		for(int j = -size / 2; j <= size / 2; j++){
-			int m = 2;
-			row_sum = 0;
-			for(int k = 0; k <= size / 2; k++){
-				if((i + j * img_info.width * 3 >= 0) && (i + j * img_info.width * 3) < img_info.biSizeImage){
-						row_sum += bmp_pixel_array[i + j * img_info.width * 3 + k * 3] * filter[n][m];
-				}
-				m++;
-			}
-			sum += row_sum;
-			n++;
-		}
-		
-		if(sum > 255){
-			sum = 255;
-		}
-		if(sum < 0){
-			sum = 0;
-		}
-		if(img_nr == 6){
-			printf("%d\n", sum);
-			}
-		pixel_array_copy[i] = sum;
-		
-		if(pixel_array_copy[i] > 255){
-			pixel_array_copy[i] = 255;
-		}
-		if(pixel_array_copy[i] < 0){
-			pixel_array_copy[i] = 0;
-		}
 		pixel_array_copy[i] = sum;
 	}
 	
