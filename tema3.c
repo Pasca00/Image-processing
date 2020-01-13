@@ -7,7 +7,7 @@
 void write_image(unsigned char *bmp_pixel_array, bmp_infoheader img_info, bmp_fileheader img_header, FILE *out_file){
 	fwrite(&img_header, sizeof(bmp_fileheader), 1, out_file);
 	fwrite(&img_info, sizeof(bmp_infoheader), 1, out_file);
-	int padded_row_size = 4 * ((img_info.width * img_info.bitPix + 31)/ 32);//(int)(4 * ceil((float)img_info.width/4.0f)) * 3;
+	int padded_row_size = img_info.width * 3 + (4 - ((img_info.width * 3) % 4)) % 4;//4 * ((img_info.width * img_info.bitPix + 31)/ 32);
 	for(int i = 0; i < img_info.height; i++){
 		int pixel_offset = ((img_info.height - i) - 1) * img_info.width * 3;
 		fwrite(&bmp_pixel_array[pixel_offset], 1, padded_row_size, out_file);
@@ -201,20 +201,20 @@ void pooling(unsigned char *bmp_pixel_array, bmp_fileheader img_header, bmp_info
 	
 	unsigned char *pixel_array_copy = malloc(img_info.biSizeImage * sizeof(unsigned char));
 	for(int i = 0; i < img_info.biSizeImage; i++){
-		pixel_array_copy[i] = 0;
+		pixel_array_copy[i] = bmp_pixel_array[i];
 	}
 	
 	int row_count = 0, pixel_count = 0;
 	if(pool_type == 'm'){
-		for(int i = 0; i < img_info.biSizeImage; i++){
+		for(int i = 0; i < img_info.width * img_info.height * 3; i++){
 			unsigned char min = 255;
 			for(int j = -pool_size / 2; j <= pool_size / 2; j++){
 				for(int k = -pool_size / 2; k <= pool_size / 2; k++){
 					if((i + j * img_info.width * 3 >= 0) && (i + j * img_info.width * 3 < img_info.biSizeImage)
 						&& (i + k * 3 - row_count * img_info.width * 3 < img_info.width * 3) 
 						&& (i - row_count * img_info.width * 3 + k * 3 >= 0)){
-							if(bmp_pixel_array[i + j * img_info.width + k * 3] < min){
-								min = bmp_pixel_array[i + j * img_info.width + k * 3];
+							if(bmp_pixel_array[i + j * img_info.width * 3 + k * 3] < min){
+								min = bmp_pixel_array[i + j * img_info.width * 3 + k * 3];
 							}
 					}
 					else{
@@ -225,16 +225,18 @@ void pooling(unsigned char *bmp_pixel_array, bmp_fileheader img_header, bmp_info
 				}
 			}
 		
-			if(pixel_count == img_info.width * 3){
+			if(pixel_count == img_info.width * 3 - 1){
 				row_count++;
 				pixel_count = 0;
 			}
-			pixel_count++;
+			else{
+				pixel_count++;
+			}
 	
 			pixel_array_copy[i] = min;
 		}
 	}
-	if(pool_type == 'M'){
+	else if(pool_type == 'M'){
 		for(int i = 0; i < img_info.biSizeImage; i++){
 			unsigned char max = 0;
 			for(int j = -pool_size / 2; j <= pool_size / 2; j++){
@@ -242,23 +244,33 @@ void pooling(unsigned char *bmp_pixel_array, bmp_fileheader img_header, bmp_info
 					if((i + j * img_info.width * 3 >= 0) && (i + j * img_info.width * 3 < img_info.biSizeImage)
 						&& (i + k * 3 - row_count * img_info.width * 3 < img_info.width * 3) 
 						&& (i - row_count * img_info.width * 3 + k * 3 >= 0)){
-							if(bmp_pixel_array[i + j * img_info.width + k * 3] > max){
-								max = bmp_pixel_array[i + j * img_info.width + k * 3];
+							if(bmp_pixel_array[i + j * img_info.width * 3 + k * 3] > max){
+								max = bmp_pixel_array[i + j * img_info.width * 3 + k * 3];
 							}
+					}
+					else{
+						if(0 > max){
+							max = 0;
+						}
 					}
 				}
 			}
 		
-			if(pixel_count == img_info.width * 3){
+			if(pixel_count == img_info.width * 3 - 1){
 				row_count++;
 				pixel_count = 0;
 			}
-			pixel_count++;
+			else{
+				pixel_count++;
+			}
 	
 			pixel_array_copy[i] = max;
 		}
 	}
 	
+	if(img_nr == 9){
+		img_info.biSizeImage = 0;
+	}
 	write_image(pixel_array_copy, img_info, img_header, pooling_output);
 	
 	free(output_filename);
@@ -285,13 +297,13 @@ int main(){
 
 		unsigned char *bmp_pixel_array = malloc((img_info.biSizeImage + 1) * sizeof(unsigned char) + 12 * sizeof(unsigned char));
 		unsigned char *pointer_to_row = bmp_pixel_array + ((img_info.height - 1) * img_info.width * 3);
-		int padded_row_size = 4 * ((img_info.width * img_info.bitPix + 31)/ 32);
+		int padded_row_size = img_info.width * 3 + (4 - ((img_info.width * 3) % 4)) % 4;//4 * ((img_info.width * img_info.bitPix + 31)/ 32);
 		for(int j = 0; j < img_info.height; j++){
 			fseek(bmp_image_file, img_header.imageDataOffset + j * padded_row_size, SEEK_SET);
 			fread(pointer_to_row, 1, img_info.width * 3, bmp_image_file);
 			pointer_to_row -= img_info.width * 3;
 		}
-		printf("%d %d %d\n", bmp_pixel_array[0], bmp_pixel_array[img_info.width * 3], bmp_pixel_array[2*img_info.width * 3]);
+
 		black_and_white(bmp_pixel_array, img_nr, img_header, img_info);
 		no_crop(bmp_pixel_array, img_nr, img_header, img_info);
 		convolutional_layers(bmp_pixel_array, img_header, img_info, img_nr);
